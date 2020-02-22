@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+diff -c revcomp-output.txt <(./revcomp <revcomp-input.txt) || echo "it's fucked"

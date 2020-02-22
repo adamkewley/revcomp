@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+./revcomp <perf-input.txt  >/dev/null

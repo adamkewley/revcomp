@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+sudo perf stat -r 5 ./revcomp-bench-step
