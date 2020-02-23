@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -e
+
+if [ -e "googletest/" ]; then
+   pushd googletest/googletest/
+   mkdir -p build/
+   cd build/ && cmake ..
+   popd
+else
+    echo "googletest/ dir does not exist: skipping" 1>&2
+    echo "note: you might need to run 'git submodule update --init --recursive' to pull googletest/"
+fi
+
