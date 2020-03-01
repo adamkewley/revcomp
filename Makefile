@@ -10,9 +10,11 @@ googletest/googletest/build/lib/libgtest.a: |  googletest/googletest/build
 test-runner: revcomp.cpp tests.cpp googletest/googletest/build/lib/libgtest.a
 	$(CXX) -g -DSIMD -std=c++11 -O3 -march=native -I googletest/googletest/include/ -o $@ tests.cpp googletest/googletest/build/lib/libgtest.a -lpthread
 
-.PHONY: compile test
+.PHONY: compile test clean
 DEFAULT_TARGET := compile
 
 compile: revcomp
 test:  test-runner
 	./test-runner
+clean:
+	rm -f revcomp test googletest/googletest/build/lib/libgtest.a
