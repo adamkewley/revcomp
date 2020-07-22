@@ -11,78 +11,10 @@ namespace {
     using std::ostream;
     using std::runtime_error;
     using std::string;
-    using std::bad_alloc;
     using std::vector;
 
     constexpr size_t basepairs_in_line = 60;
     constexpr size_t line_len = basepairs_in_line + sizeof('\n');
-
-    // custom vector impl. that has *similar* methods to a
-    // `vector<char>`. The reason this is necessary is because the stdlib
-    // `vector<char>` implementation requires that `.resize` initializes
-    // the newly-allocated content, and that `realloc` cannot be
-    // used. Valgrind reports that that is ~10-20 % of application
-    // perf. for large inputs.
-    class unsafe_vector {
-    public:
-        unsafe_vector() {
-            _buf = (char*)malloc(_capacity);
-            if (_buf == nullptr) {
-                throw bad_alloc{};
-            }
-        }
-
-        unsafe_vector(const unsafe_vector& other) = delete;
-        unsafe_vector(unsafe_vector&& other) = delete;
-        unsafe_vector& operator=(unsafe_vector& other) = delete;
-        unsafe_vector& operator=(unsafe_vector&& other) = delete;
-
-        ~unsafe_vector() noexcept {
-            free(_buf);
-        }
-
-        char* data() {
-            return _buf;
-        }
-
-        // Resizes the vector to have a size of `count`. This method is
-        // UNSAFE because any new vector entries are uninitialized.
-        void resize_UNSAFE(size_t count) {
-            size_t rem = _capacity - _size;
-            if (count > rem) {
-                grow(count);
-            }
-            _size = count;
-        }
-
-        size_t size() const {
-            return _size;
-        }
-
-    private:
-        void grow(size_t min_cap) {
-            size_t new_cap = _capacity;
-            while (new_cap < min_cap) {
-                new_cap *= 2;
-            }
-
-            char* new_buf = (char*)realloc(_buf, new_cap);
-            if (new_buf != nullptr) {
-                _capacity = new_cap;
-                _buf = new_buf;
-            } else {
-                // The POSIX definition of `realloc` states that a failed
-                // reallocation leaves the supplied pointer untouched, so
-                // throw here and let the class's destructor free the
-                // untouched ptr (if necessary).
-                throw bad_alloc{};
-            }
-        }
-
-        char* _buf = nullptr;
-        size_t _size = 0;
-        size_t _capacity = 1024;
-    };
 
     // Returns the complement of a a single basepair character. newline
     // characters are unaffected.
@@ -202,6 +134,8 @@ namespace {
             complement_swap(start++, --end);
         }
     }
+
+    using unsafe_vector = std::vector<char>;
 
     struct Sequence {
         string header;  // not incl. starting delim (>)
@@ -327,7 +261,7 @@ namespace {
         constexpr size_t read_size = 1<<16;
 
         size_t bytes_read = 0;
-        out.resize_UNSAFE(read_size);
+        out.resize(read_size);
         while (in) {
             in.getline(out.data() + bytes_read, read_size, delim);
             bytes_read += in.gcount();
@@ -335,7 +269,7 @@ namespace {
             if (in.fail()) {
                 // failed because it ran out of buffer space. Expand the
                 // buffer and perform another read
-                out.resize_UNSAFE(bytes_read + read_size);
+                out.resize(bytes_read + read_size);
                 in.clear(in.rdstate() & ~std::ios::failbit);
             } else if (in.eof()) {
                 // hit EOF, rather than delmiter, but an EOF can be
@@ -349,7 +283,7 @@ namespace {
                 break;
             }
         }
-        out.resize_UNSAFE(bytes_read);
+        out.resize(bytes_read);
     }
 
     // Read a sequence, starting *after* the first delimiter (>)
